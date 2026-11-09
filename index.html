@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ministry Roster v14</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2336;--border:#2a2f45;
+  --accent:#c8a96e;--text:#e8e6f0;--muted:#7a7d9a;
+  --danger:#e05c5c;--success:#5cb88a;--warn:#e0a85c;
+  --highlight:#ffe94d;
+  --radius:10px;
+  --font-head:'Playfair Display',serif;
+  --font-body:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;font-size:14px;line-height:1.6}
+
+header{padding:3rem 2rem 2rem;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(200,169,110,.08),transparent 60%)}
+.header-inner{max-width:1100px;margin:0 auto;position:relative;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+header h1{font-family:var(--font-head);font-size:2.4rem;font-weight:500;color:var(--accent);margin-bottom:.2rem}
+header p{color:var(--muted);font-weight:300;font-size:.95rem}
+.sync-status{font-size:12px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync-status.synced .sync-dot{background:var(--success)}
+.sync-status.syncing .sync-dot{background:var(--warn);animation:pulse 1s infinite}
+.sync-status.error .sync-dot{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.container{max-width:1100px;margin:0 auto;padding:2rem}
+
+/* Google Sheets setup banner */
+.setup-banner{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:2rem}
+.setup-banner h3{font-family:var(--font-head);font-size:1.1rem;color:var(--accent);margin-bottom:1rem}
+.setup-steps{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.25rem}
+.setup-step{display:flex;gap:10px;font-size:13px;align-items:flex-start}
+.step-num{background:rgba(200,169,110,.15);color:var(--accent);border:1px solid rgba(200,169,110,.3);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px}
+.step-text{color:var(--muted);line-height:1.5}
+.step-text code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px;color:var(--text);font-family:monospace}
+.sheet-input-row{display:flex;gap:8px;flex-wrap:wrap}
+.sheet-input{flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:var(--radius);font-family:var(--font-body);font-size:13px}
+.sheet-input:focus{outline:none;border-color:var(--accent)}
+.btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 18px;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0f1117;font-weight:500}
+.btn.primary:hover{background:#b8954f}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#0f1117;font-weight:500}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem}
+.select-wrap{position:relative}
+.select-wrap::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:11px}
+select{appearance:none;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 32px 9px 14px;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;cursor:pointer;min-width:200px}
+select:focus{outline:none;border-color:var(--accent)}
+
+/* Legend */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1.5rem;padding:.75rem 1.25rem;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);align-items:center}
+.legend-label{font-size:11px;color:var(--muted);margin-right:4px;text-transform:uppercase;letter-spacing:.06em}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.legend-item svg{width:15px;height:15px;flex-shrink:0}
+.legend-item svg[viewBox="0 0 48 20"]{width:30px;height:13px}
+
+/* Week cards */
+.week-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:.75rem;overflow:hidden;transition:border-color .2s,opacity .2s}
+.week-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.week-card.dimmed{opacity:.28}
+.week-card.highlighted{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 4px 24px rgba(200,169,110,.12)}
+
+.week-header{padding:.85rem 1.25rem;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:border-color .2s}
+.week-card.expanded .week-header{border-bottom-color:var(--border)}
+.week-date-block{display:flex;flex-direction:column;gap:4px;flex-shrink:0;min-width:120px}
+.week-date{font-family:var(--font-head);font-size:1rem;color:var(--accent)}
+.week-card.incomplete .week-date{color:var(--danger)}
+.song-section{grid-column:1/-1;border-top:1px dashed var(--border);padding-top:.75rem;margin-top:.25rem}
+.song-section-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;margin-bottom:.5rem;display:flex;align-items:center;gap:6px}
+.song-list{display:flex;flex-direction:column;gap:0}
+.song-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.song-item:last-child{border-bottom:none}
+.song-num{font-size:11px;color:var(--muted);min-width:16px;text-align:right;flex-shrink:0;padding-top:2px}
+.song-detail{flex:1;display:flex;flex-direction:column;gap:2px}
+.song-name{font-size:13px;color:var(--text);font-weight:500}
+.song-key{font-size:10px;padding:1px 7px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--muted);flex-shrink:0;align-self:flex-start;margin-top:2px}
+.song-key-empty{font-size:10px;color:var(--border);font-style:italic}
+.song-key-input{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text);width:60px;font-family:var(--font-body);text-align:center;margin-top:2px}
+.song-key-input:focus{outline:none;border-color:var(--accent)}
+.edit-only{display:none!important}
+.edit-mode .edit-only{display:inline-flex!important}
+.edit-mode input.edit-only{display:block!important}
+.edit-mode .song-key-view{display:none!important}
+.song-meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.song-meta svg{width:11px;height:11px;flex-shrink:0;opacity:.6}
+.song-link{font-size:11px;color:#7c9ef5;text-decoration:none;display:inline-flex;align-items:center;gap:4px;word-break:break-all}
+.song-link:hover{text-decoration:underline}
+.song-link svg{width:11px;height:11px;flex-shrink:0}
+.song-empty{font-size:12px;color:var(--muted);font-style:italic;padding:.5rem 0}
+.week-pills{flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.person-pill{font-size:11px;padding:2px 9px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text);white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.person-pill i{font-size:12px;color:var(--muted)}
+.person-pill svg{width:12px;height:12px;flex-shrink:0;opacity:.7}
+.person-pill svg[viewBox="0 0 48 20"]{width:20px;height:8px}
+.person-pill.mine svg{opacity:1}
+.person-pill.mine{background:rgba(255,233,77,.18);border-color:rgba(255,233,77,.5);color:var(--highlight);font-weight:500}
+.person-pill.mine i{color:var(--highlight)}
+.week-card.incomplete{border-color:rgba(224,92,92,.4)}
+.week-card.incomplete .week-date{color:var(--danger)}
+.missing-banner{display:flex;align-items:center;gap:8px;padding:.55rem 1.25rem;background:rgba(224,92,92,.08);border-bottom:1px solid rgba(224,92,92,.2);font-size:12px;color:var(--danger)}
+.missing-banner strong{font-weight:500}
+.week-warn-badge{font-size:11px;color:var(--danger);white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;padding:2px 8px;border-radius:20px;border:1px solid rgba(224,92,92,.3);background:rgba(224,92,92,.08)}
+.role-block-missing{border-color:rgba(224,92,92,.35);background:rgba(224,92,92,.06)}
+.role-block-missing .role-label{color:var(--danger)}
+.missing-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-left:6px;vertical-align:middle;flex-shrink:0}
+.week-warn{font-size:11px;color:var(--danger);display:flex;align-items:center;gap:4px;white-space:nowrap}
+.team-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid;letter-spacing:.04em;flex-shrink:0}
+.team-1{background:rgba(200,169,110,.15);border-color:rgba(200,169,110,.4);color:var(--accent)}
+.team-2{background:rgba(124,158,245,.15);border-color:rgba(124,158,245,.4);color:#7c9ef5}
+.team-3{background:rgba(92,184,138,.15);border-color:rgba(92,184,138,.4);color:var(--success)}
+.team-4{background:rgba(224,168,92,.15);border-color:rgba(224,168,92,.4);color:var(--warn)}
+.team-other{background:rgba(122,125,154,.15);border-color:rgba(122,125,154,.4);color:var(--muted)}
+.manual-block{background:var(--surface2);border-radius:8px;padding:.7rem 1rem;border:1px dashed var(--border)}
+.manual-block .role-label{color:var(--muted)}
+.manual-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding-top:10px;border-top:1px dashed var(--border);margin-top:4px}
+.manual-input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px;font-family:var(--font-body);width:100%;margin-top:4px}
+.manual-input:focus{outline:none;border-color:var(--accent2)}
+.manual-view-name{display:block;font-size:13px;margin-top:2px}
+.manual-empty{color:var(--muted);font-style:italic}
+.edit-mode .manual-view-name{display:none}
+.chevron{color:var(--muted);transition:transform .25s;margin-left:auto;font-size:18px;line-height:1;flex-shrink:0}
+.week-card.expanded .chevron{transform:rotate(180deg)}
+
+.week-body{display:none;padding:1rem 1.25rem;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px}
+.week-card.expanded .week-body{display:grid}
+
+.role-block{background:var(--surface2);border-radius:8px;padding:.7rem 1rem;border:1px solid var(--border)}
+.role-label{display:flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.6rem;font-weight:500}
+.role-label svg{width:16px;height:16px;flex-shrink:0}
+.role-label svg[viewBox="0 0 48 20"]{width:28px;height:12px}
+.person-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);gap:6px}
+.person-row:last-child{border-bottom:none}
+.pname{font-size:13px;flex:1;transition:color .15s}
+.pname.mine{color:var(--highlight);font-weight:500}
+.swap-btn{font-size:10px;padding:2px 8px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.swap-btn:hover{border-color:#7c9ef5;color:#7c9ef5}
+/* ── Lock / Edit mode ────────────────────────────────────────────── */
+body:not(.edit-mode) .swap-btn{display:none!important}
+body:not(.edit-mode) .manual-input{pointer-events:none;background:transparent!important;border-color:transparent!important;color:var(--text);padding-left:0}
+body:not(.edit-mode) .manual-input::placeholder{color:transparent}
+body:not(.edit-mode) .manual-block{border-style:solid;border-color:var(--border);background:var(--surface2)}
+.edit-fab{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 16px;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .2s}
+.edit-fab:hover{border-color:var(--accent);color:var(--accent)}
+.edit-fab.active{background:rgba(200,169,110,.12);border-color:var(--accent);color:var(--accent)}
+/* PIN overlay */
+.pin-overlay{position:fixed;inset:0;background:rgba(8,10,18,.93);z-index:300;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px)}
+.pin-overlay.hidden{display:none}
+.pin-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2.5rem 2rem 2rem;width:300px;max-width:92vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.pin-box h2{font-family:var(--font-head);font-size:1.35rem;color:var(--accent);margin-bottom:.35rem}
+.pin-box p{font-size:13px;color:var(--muted);margin-bottom:1.75rem}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:1.5rem}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all .15s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(200,169,110,.4)}
+.pin-dot.error{background:var(--danger);border-color:var(--danger)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem}
+.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:15px 10px;font-size:1.15rem;font-weight:500;color:var(--text);cursor:pointer;transition:all .15s;font-family:var(--font-body);line-height:1}
+.pin-key:hover{background:var(--border);border-color:var(--muted);transform:translateY(-1px)}
+.pin-key:active{transform:scale(.92)}
+.pin-key.wide{grid-column:span 2;font-size:.85rem;color:var(--muted);letter-spacing:.04em}
+.pin-key.del{color:var(--muted);font-size:.9rem}
+.pin-error{font-size:12px;color:var(--danger);min-height:18px;margin-top:.25rem;transition:opacity .2s}
+.pin-view-only{font-size:11px;color:var(--muted);margin-top:1rem;cursor:pointer;background:none;border:none;font-family:var(--font-body);text-decoration:underline}
+.pin-view-only:hover{color:var(--text)}
+.empty-slot{font-size:12px;color:var(--danger);font-style:italic}
+.required-badge{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(224,92,92,.15);color:var(--danger);border:1px solid rgba(224,92,92,.25);margin-left:4px;vertical-align:middle}
+
+/* Swap modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;width:430px;max-width:95vw}
+.modal h3{font-family:var(--font-head);font-size:1.2rem;color:var(--accent);margin-bottom:1.25rem}
+.modal-info{font-size:13px;color:var(--muted);margin-bottom:1.25rem;padding:.75rem 1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);line-height:1.6}
+.modal-info strong{color:var(--text)}
+.swap-list{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;margin-bottom:1.5rem}
+.swap-option{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all .2s;font-size:13px;gap:8px}
+.swap-option:hover:not(.unavail){border-color:#7c9ef5;background:rgba(124,158,245,.06)}
+.swap-option.unavail{opacity:.4;cursor:not-allowed}
+.avail-badge{font-size:10px;padding:2px 8px;border-radius:20px;flex-shrink:0}
+.av-ok{background:rgba(92,184,138,.15);color:var(--success);border:1px solid rgba(92,184,138,.3)}
+.av-no{background:rgba(224,92,92,.1);color:var(--danger);border:1px solid rgba(224,92,92,.25)}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px}
+
+/* Swap log */
+.swap-log{margin-top:2rem;padding:1.25rem;background:var(--surface);border-radius:14px;border:1px solid var(--border)}
+.swap-log h3{font-family:var(--font-head);font-size:1rem;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.log-entry{font-size:12px;color:var(--muted);padding:.4rem 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start}
+.log-entry:last-child{border-bottom:none}
+.log-date{color:var(--accent);min-width:115px;font-size:11px;flex-shrink:0}
+.log-empty{font-size:12px;color:var(--border);font-style:italic}
+
+@media(max-width:600px){
+  header h1{font-size:1.6rem}
+  .week-date{min-width:110px;font-size:.9rem}
+  .week-body{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- PIN overlay -->
+<div class="pin-overlay hidden" id="pinOverlay">
+  <div class="pin-box">
+    <h2>Edit Mode</h2>
+    <p>Enter PIN to manage swaps &amp; assignments</p>
+    <div class="pin-dots">
+      <span class="pin-dot" id="pd0"></span>
+      <span class="pin-dot" id="pd1"></span>
+      <span class="pin-dot" id="pd2"></span>
+      <span class="pin-dot" id="pd3"></span>
+      <span class="pin-dot" id="pd4"></span>
+      <span class="pin-dot" id="pd5"></span>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key del" onclick="pinDelete()">⌫</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key" onclick="checkPin()" style="color:var(--accent)">OK</button>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+    <button class="pin-view-only" onclick="closePin(false)">Cancel — stay in view mode</button>
+  </div>
+</div>
+
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>Ministry Roster</h1>
+      <p id="subtitle">Loading schedule…</p>
+    </div>
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-dot"></span>
+      <span id="syncText">Not connected</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="controls">
+    <div class="select-wrap">
+      <select id="personFilter" onchange="filterPerson(this.value)">
+        <option value="">— Highlight a person —</option>
+      </select>
+    </div>
+    <button class="btn" onclick="expandAll()">↕ Expand all</button>
+    <button class="btn" onclick="collapseAll()">↑ Collapse all</button>
+    <button class="btn" id="warnToggle" onclick="toggleWarnings()">⚠ Warnings only</button>
+    <button class="btn" onclick="reloadFromSheet()" title="Reload latest roster" style="margin-left:auto">↻ Refresh</button>
+    <button class="edit-fab" id="editFab" onclick="toggleEditMode()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="editFabLabel">Unlock</span>
+    </button>
+  </div>
+
+  <div class="legend">
+    <span class="legend-label">Roles:</span>
+    <span class="legend-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>Worship Leader</span>
+    <span class="legend-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><path d="M9 11.5c0 0 1 1.5 3 1.5s3-1.5 3-1.5"/><path d="M10 14l-1 2m5-2l1 2"/></svg>Singer</span>
+    <span class="legend-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="17" rx="7" ry="3"/><line x1="5" y1="17" x2="5" y2="10"/><line x1="19" y1="17" x2="19" y2="10"/><ellipse cx="12" cy="10" rx="7" ry="2.5"/><line x1="8" y1="4" x2="8" y2="9"/><line x1="16" y1="4" x2="16" y2="9"/><line x1="7" y1="3" x2="9" y2="3"/><line x1="15" y1="3" x2="17" y2="3"/></svg>Drummer</span>
+    <span class="legend-item"><svg viewBox="0 0 48 20" fill="currentColor" stroke="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4 C7 4 4 5.5 3 7 C2 8.5 2 10 3 11.5 C2.5 12.5 2.5 14 3.5 15 C4.5 16 6 16.5 7 16 L8 15.5 C9.5 17 11.5 17.5 13 17 C15 16.5 16 15 16 13.5 L16 12 L36 10.5 L40 11 C41 11.2 42 10.8 42.5 10 L44 10.2 C44.8 10.3 45.5 9.8 45.5 9 C45.5 8.2 44.8 7.7 44 7.8 L42.5 8 C42 7.2 41 6.8 40 7 L36 7.5 L16 6 C16 4.5 15 3.5 13 3.2 C12.3 3.1 11.6 4 11 4 Z M8 8 C9.5 7.5 11 7.8 11.5 8.5 C12 9.2 11.5 10.2 10 10.5 C8.5 10.8 7 10.3 6.5 9.5 C6 8.7 6.5 8.5 8 8 Z"/></svg>Bass</span>
+    <span class="legend-item"><svg viewBox="0 0 48 20" fill="currentColor" stroke="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4 C7 4 4 5.5 3 7 C2 8.5 2 10 3 11.5 C2.5 12.5 2.5 14 3.5 15 C4.5 16 6 16.5 7 16 L8 15.5 C9.5 17 11.5 17.5 13 17 C15 16.5 16 15 16 13.5 L16 12 L36 10.5 L40 11 C41 11.2 42 10.8 42.5 10 L44 10.2 C44.8 10.3 45.5 9.8 45.5 9 C45.5 8.2 44.8 7.7 44 7.8 L42.5 8 C42 7.2 41 6.8 40 7 L36 7.5 L16 6 C16 4.5 15 3.5 13 3.2 C12.3 3.1 11.6 4 11 4 Z M8 8 C9.5 7.5 11 7.8 11.5 8.5 C12 9.2 11.5 10.2 10 10.5 C8.5 10.8 7 10.3 6.5 9.5 C6 8.7 6.5 8.5 8 8 Z"/></svg>Electric Guitar</span>
+    <span class="legend-item"><svg viewBox="0 0 48 20" fill="currentColor" stroke="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4 C7 4 4 5.5 3 7 C2 8.5 2 10 3 11.5 C2.5 12.5 2.5 14 3.5 15 C4.5 16 6 16.5 7 16 L8 15.5 C9.5 17 11.5 17.5 13 17 C15 16.5 16 15 16 13.5 L16 12 L36 10.5 L40 11 C41 11.2 42 10.8 42.5 10 L44 10.2 C44.8 10.3 45.5 9.8 45.5 9 C45.5 8.2 44.8 7.7 44 7.8 L42.5 8 C42 7.2 41 6.8 40 7 L36 7.5 L16 6 C16 4.5 15 3.5 13 3.2 C12.3 3.1 11.6 4 11 4 Z M8 8 C9.5 7.5 11 7.8 11.5 8.5 C12 9.2 11.5 10.2 10 10.5 C8.5 10.8 7 10.3 6.5 9.5 C6 8.7 6.5 8.5 8 8 Z"/></svg>Acoustic Guitar</span>
+    <span class="legend-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="10" rx="2"/><line x1="6" y1="8" x2="6" y2="18"/><line x1="10" y1="8" x2="10" y2="18"/><line x1="14" y1="8" x2="14" y2="18"/><line x1="18" y1="8" x2="18" y2="18"/><rect x="4" y="10" width="1.5" height="5" rx=".5" fill="currentColor" stroke="none"/><rect x="8" y="10" width="1.5" height="5" rx=".5" fill="currentColor" stroke="none"/><rect x="12" y="10" width="1.5" height="5" rx=".5" fill="currentColor" stroke="none"/><rect x="16" y="10" width="1.5" height="5" rx=".5" fill="currentColor" stroke="none"/><line x1="7" y1="5" x2="5" y2="8"/><line x1="12" y1="4" x2="12" y2="8"/><line x1="17" y1="5" x2="19" y2="8"/></svg>Keys</span>
+    <span class="legend-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Photographer</span>
+  </div>
+
+  <div id="scheduleRoot"></div>
+
+  <div class="swap-log" id="swapLogEl">
+    <h3>⇄ Swap history</h3>
+    <div id="swapLogEntries"><p class="log-empty">No swaps recorded yet.</p></div>
+  </div>
+</div>
+
+<!-- Swap modal -->
+<div class="modal-bg" id="swapModal">
+  <div class="modal">
+    <h3>Request a swap</h3>
+    <div class="modal-info" id="swapInfo"></div>
+    <div class="swap-list" id="swapOptions"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSwap()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROLES = [
+  "Worship Leader","Singer","Drummer",
+  "Bass Guitarist","Electric Guitarist","Acoustic Guitarist","Keyboardist",
+  "Soundman","Slides","Dress Code QC","Photographer"
+];
+const MANUAL_ROLES = ["Soundman","Slides","Dress Code QC","Photographer"]; // filled manually
+const REQUIRED = {"Worship Leader":1,"Singer":2,"Keyboardist":1,"Drummer":1};
+const ROLE_LABELS = {
+  "Worship Leader":"Worship Leader","Singer":"Singer","Drummer":"Drummer",
+  "Bass Guitarist":"Bass","Electric Guitarist":"Electric Guitar",
+  "Acoustic Guitarist":"Acoustic Guitar","Keyboardist":"Keys",
+  "Soundman":"Soundman","Slides":"Slides","Dress Code QC":"Dress Code QC",
+  "Photographer":"Photographer"
+};
+
+const _G = `<svg viewBox="0 0 48 20" fill="currentColor" stroke="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4 C7 4 4 5.5 3 7 C2 8.5 2 10 3 11.5 C2.5 12.5 2.5 14 3.5 15 C4.5 16 6 16.5 7 16 L8 15.5 C9.5 17 11.5 17.5 13 17 C15 16.5 16 15 16 13.5 L16 12 L36 10.5 L40 11 C41 11.2 42 10.8 42.5 10 L44 10.2 C44.8 10.3 45.5 9.8 45.5 9 C45.5 8.2 44.8 7.7 44 7.8 L42.5 8 C42 7.2 41 6.8 40 7 L36 7.5 L16 6 C16 4.5 15 3.5 13 3.2 C12.3 3.1 11.6 4 11 4 Z M8 8 C9.5 7.5 11 7.8 11.5 8.5 C12 9.2 11.5 10.2 10 10.5 C8.5 10.8 7 10.3 6.5 9.5 C6 8.7 6.5 8.5 8 8 Z"/></svg>`;
+
+const ROLE_SVG = {
+  "Worship Leader": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>`,
+  "Singer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><path d="M9 10.5c0 0 1 1.5 3 1.5s3-1.5 3-1.5"/><path d="M10 13.5l-1 2.5m6-2.5l1 2.5"/></svg>`,
+  "Drummer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="17" rx="7" ry="3"/><line x1="5" y1="17" x2="5" y2="11"/><line x1="19" y1="17" x2="19" y2="11"/><ellipse cx="12" cy="11" rx="7" ry="2.5"/><line x1="8" y1="5" x2="8" y2="10"/><line x1="16" y1="5" x2="16" y2="10"/><line x1="7" y1="4" x2="9" y2="4"/><line x1="15" y1="4" x2="17" y2="4"/></svg>`,
+  "Keyboardist": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="11" rx="2"/><line x1="6" y1="8" x2="6" y2="19"/><line x1="10" y1="8" x2="10" y2="19"/><line x1="14" y1="8" x2="14" y2="19"/><line x1="18" y1="8" x2="18" y2="19"/><rect x="4" y="9.5" width="1.5" height="5.5" rx=".5" fill="currentColor" stroke="none"/><rect x="8" y="9.5" width="1.5" height="5.5" rx=".5" fill="currentColor" stroke="none"/><rect x="12" y="9.5" width="1.5" height="5.5" rx=".5" fill="currentColor" stroke="none"/><rect x="16" y="9.5" width="1.5" height="5.5" rx=".5" fill="currentColor" stroke="none"/><line x1="7" y1="5" x2="5" y2="8"/><line x1="12" y1="4" x2="12" y2="8"/><line x1="17" y1="5" x2="19" y2="8"/></svg>`,
+  "Bass Guitarist":     _G,
+  "Electric Guitarist": _G,
+  "Acoustic Guitarist": _G,
+  "Soundman": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="10" rx="2"/><path d="M4 19h6"/><path d="M7 14v5"/><path d="M14 6h2a4 4 0 0 1 0 8h-2"/><line x1="14" y1="10" x2="20" y2="10"/></svg>`,
+  "Slides": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="7" y1="9" x2="12" y2="12"/><line x1="12" y1="12" x2="17" y2="9"/></svg>`,
+  "Dress Code QC": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 L6 6 L3 6 L3 10 L6 10 L9 21 L15 21 L18 10 L21 10 L21 6 L18 6 L15 3 Z"/><line x1="9" y1="3" x2="15" y2="3"/><polyline points="9,6 12,9 15,6"/></svg>`,
+  "Photographer": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+};
+
+// ── Team data (populated from Sheet) ─────────────────────────────────────────
+let volunteerTeams = {}; // { "Name": { team: "1", leader: "John" } }
+
+function roleIcon(role){ return ROLE_SVG[role] || ''; }
+function roleLabel(role){ return ROLE_LABELS[role] || role; }
+
+// ── Live state ────────────────────────────────────────────────────────────────
+let schedule = [];
+let volunteers = {};
+let unavailability = {};
+let songs = {};  // { 'display date': [{title, key}] }
+const swapLog = [];
+let showWarningsOnly = false;
+
+// ── Configuration ─────────────────────────────────────────────────────────────
+// DATA_URL : static roster file committed to this repo by the Apps Script publisher.
+// API_URL  : Apps Script Web App URL. It only accepts PIN-protected edits and never
+//            returns any roster data, so it is safe to be visible here.
+//            Leave '' to make the page strictly read-only.
+const DATA_URL = 'data/roster.json';
+const API_URL  = '';
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+let adminPin = null;   // held in memory only after a successful unlock
+
+function setSyncStatus(state, text){
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + state;
+  document.getElementById('syncText').textContent = text;
+}
+
+async function apiCall(payload){
+  if(!API_URL) throw Object.assign(new Error('Editing is not enabled on this page.'), {code:'NO_API'});
+  const r = await fetch(API_URL, {
+    method:'POST', redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(Object.assign({pin: adminPin}, payload))
+  });
+  const j = await r.json();
+  if(j.error) throw Object.assign(new Error(j.error), {code: j.code || ''});
+  return j;
+}
+
+// Wrong/locked PIN → drop back to view mode
+function handleApiError(e){
+  if(e.code==='BAD_PIN' || e.code==='LOCKED'){ adminPin=null; exitEditMode(); }
+  alert(e.message);
+}
+
+async function loadAll(){
+  setSyncStatus('syncing','Loading roster…');
+  showLoading(true);
+  try{
+    const r = await fetch(DATA_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    schedule = d.schedule || [];
+    volunteers = {};
+    (d.people || []).forEach(n => volunteers[n] = []);
+    volunteerTeams = d.teams || {};
+    songs = d.songs || {};
+    swapLog.length = 0;
+    (d.swaps || []).slice().reverse().forEach(s => swapLog.push(s));
+    populateFilter();
+    render();
+    renderSwapLog();
+    const upd = d.generated ? new Date(d.generated).toLocaleString() : '—';
+    document.getElementById('subtitle').textContent = `${schedule.length} services · updated ${upd}`;
+    setSyncStatus('synced','Up to date');
+  } catch(e){
+    console.error('loadAll error', e);
+    setSyncStatus('error','Could not load roster');
+    document.getElementById('subtitle').textContent = 'Could not load the roster (' + e.message + '). Tap Refresh to retry.';
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(on){
+  let el = document.getElementById('loadingState');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'loadingState';
+    el.style.cssText = 'text-align:center;padding:3rem;color:var(--muted);font-size:14px;';
+    el.innerHTML = '<div style="margin-bottom:.5rem;font-size:1.5rem">⟳</div>Loading roster…';
+    document.getElementById('scheduleRoot').before(el);
+  }
+  el.style.display = on ? '' : 'none';
+  document.getElementById('scheduleRoot').style.opacity = on ? '0.3' : '1';
+}
+
+function reloadFromSheet(){ return loadAll(); }
+
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function isUnavail(name, dateStr){
+  const d=new Date(dateStr);
+  for(const [s,e] of (unavailability[name]||[])){
+    if(new Date(s)<=d && d<=new Date(e)) return true;
+  }
+  return false;
+}
+function allNamesForRole(role){
+  return Object.entries(volunteers).filter(([,r])=>r.includes(role)).map(([n])=>n);
+}
+
+// ── Team helpers ──────────────────────────────────────────────────────────────
+function dominantTeam(week){
+  const singers = week.assigned['Singer'] || [];
+
+  // Priority 1: if Singer 1 is a group leader → use their team
+  if(singers[0] && volunteerTeams[singers[0]]?.isLeader){
+    return volunteerTeams[singers[0]].team;
+  }
+  // Priority 2: if Singer 2 is a group leader → use their team
+  if(singers[1] && volunteerTeams[singers[1]]?.isLeader){
+    return volunteerTeams[singers[1]].team;
+  }
+  // Priority 3: majority team across all assigned volunteers
+  const tally = {};
+  Object.values(week.assigned).flat().forEach(name=>{
+    const t = volunteerTeams[name]?.team;
+    if(t){ tally[t] = (tally[t]||0) + 1; }
+  });
+  if(!Object.keys(tally).length) return null;
+  return Object.entries(tally).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+function teamBadgeHtml(week){
+  const team = dominantTeam(week);
+  if(!team) return '';
+  const cls = ['1','2','3','4'].includes(team) ? `team-${team}` : 'team-other';
+  const info = volunteerTeams;
+  // find leader for this team
+  const leader = Object.values(info).find(v=>v.team===team && v.isLeader);
+  const leaderName = leader ? ` · ${Object.keys(volunteerTeams).find(n=>volunteerTeams[n]===leader)||''}` : '';
+  return `<span class="team-badge ${cls}">Team ${team}${leaderName}</span>`;
+}
+
+// ── Missing key players ───────────────────────────────────────────────────────
+const KEY_ROLES = {
+  'Worship Leader': 1,
+  'Singer':         2,
+  'Drummer':        1,
+  'Keyboardist':    1,
+};
+
+function missingRoles(week){
+  return Object.entries(KEY_ROLES)
+    .filter(([role, min]) => (week.assigned[role]||[]).length < min)
+    .map(([role, min]) => {
+      const have = (week.assigned[role]||[]).length;
+      return have === 0 ? role : `${role} (need ${min}, have ${have})`;
+    });
+}
+
+// ── Fuzzy role key resolver ───────────────────────────────────────────────────
+// The sheet may return keys with different casing or spacing than our ROLES list.
+// This finds the best matching key in week.assigned for a given role name.
+function getAssigned(week, role){
+  const assigned = week.assigned || {};
+  // Exact match first
+  if(assigned[role] !== undefined) return assigned[role];
+  const roleNorm = role.toLowerCase().replace(/\s+/g,'');
+  const roleWord = role.split(' ')[0].toLowerCase();
+  const matchedKey = Object.keys(assigned).find(k =>
+    k.toLowerCase().replace(/\s+/g,'') === roleNorm ||
+    k.toLowerCase().includes(roleWord)
+  );
+  return matchedKey ? assigned[matchedKey] : [];
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  const root = document.getElementById('scheduleRoot');
+  root.innerHTML='';
+  const sel = document.getElementById('personFilter').value;
+
+  if(!schedule.length){
+    root.innerHTML='<p style="color:var(--muted);text-align:center;padding:3rem;font-size:13px">No schedule loaded yet.<br>Connect to Google Sheets and generate a schedule using the menu in your spreadsheet.</p>';
+    return;
+  }
+
+  schedule.forEach((week,wi)=>{
+    const missing  = missingRoles(week);
+    const hasWarn  = missing.length > 0 || week.warnings?.length > 0;
+    if(showWarningsOnly && !hasWarn) return;
+    const allPeople = Object.values(week.assigned).flat();
+    const isHighlighted = sel && allPeople.includes(sel);
+    const isDimmed = sel && !isHighlighted;
+
+    const card = document.createElement('div');
+    card.className='week-card'+(isDimmed?' dimmed':'')+(isHighlighted?' highlighted':'')+(missing.length?' incomplete':'');
+    card.dataset.wi=wi;
+
+    const pills = ROLES.flatMap(r=>{
+      const people = getAssigned(week, r);
+      return (Array.isArray(people) ? people : people ? [people] : []).map(p=>{
+        const mine=sel===p;
+        return `<span class="person-pill${mine?' mine':''}" title="${r}">${roleIcon(r)}${p}</span>`;
+      });
+    }).join('');
+
+    const warnHtml = missing.length
+      ? `<span class="week-warn-badge">⚠ Missing: ${missing.join(', ')}</span>`
+      : '';
+
+    card.innerHTML=`
+      <div class="week-header" onclick="toggleCard(${wi})">
+        <div class="week-date-block">
+          <span class="week-date">${week.display}</span>
+          ${teamBadgeHtml(week)}
+        </div>
+        <div class="week-pills">${pills}</div>
+        ${warnHtml}
+        <span class="chevron">⌄</span>
+      </div>
+      ${missing.length ? `<div class="missing-banner"><span>⚠</span><span>Missing key players: <strong>${missing.join(' · ')}</strong></span></div>` : ''}
+      <div class="week-body" id="body-${wi}">${buildBody(week,wi,sel,missing)}</div>`;
+    root.appendChild(card);
+  });
+}
+
+function buildBody(week,wi,highlight,missing=[]){
+  const missingRoleNames = missing.map(m=>m.split(' (')[0]); // strip "(need X, have Y)"
+  const autoRoles = ROLES.filter(r=>!MANUAL_ROLES.includes(r));
+  const autoHtml = autoRoles.map(role=>{
+    const raw = getAssigned(week, role);
+    const people = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    const req=REQUIRED[role]||0;
+    const isMissing = missingRoleNames.includes(role);
+    const rows=people.length
+      ? people.map(p=>`<div class="person-row">
+          <span class="pname${highlight===p?' mine':''}">${p}</span>
+          <button class="swap-btn" onclick="openSwap(event,${wi},'${role}','${p.replace(/'/g,"\\'")}')">swap</button>
+        </div>`).join('')
+      :`<span class="empty-slot">${req?'Required — none assigned':'—'}</span>`;
+    return `<div class="role-block${isMissing?' role-block-missing':''}">
+      <div class="role-label">${roleIcon(role)}${roleLabel(role)}${isMissing?'<span class="missing-dot"></span>':''}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+
+  const manualHtml = MANUAL_ROLES.map(role=>{
+    const raw = getAssigned(week, role);
+    const val = Array.isArray(raw) ? (raw[0]||'') : (typeof raw==='string' ? raw : '');
+    return `<div class="manual-block">
+      <div class="role-label">${roleIcon(role)}${roleLabel(role)}</div>
+      <span class="manual-view-name">${val ? `<span class="pname${highlight===val?' mine':''}">${val}</span>` : '<span class="manual-empty">—</span>'}</span>
+      <input class="manual-input edit-only" type="text" placeholder="Type name…"
+        value="${val.replace(/"/g,'&quot;')}"
+        onchange="saveManual(${wi},'${role}',this.value)"
+        onclick="event.stopPropagation()">
+    </div>`;
+  }).join('');
+
+  // Song list for this week
+  const weekSongs = songs[week.display] || [];
+  const songHtml = `
+    <div class="song-section">
+      <div class="song-section-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Song List
+      </div>
+      <div class="song-list">
+        ${weekSongs.length
+          ? weekSongs.map((s,i)=>`
+              <div class="song-item">
+                <span class="song-num">${i+1}</span>
+                <div class="song-detail">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    <span class="song-name">${s.title}</span>
+                    <span class="song-key-view">${s.key ? `<span class="song-key">${s.key}</span>` : '<span class="song-key-empty">no key</span>'}</span>
+                    <input class="song-key-input edit-only"
+                      type="text"
+                      placeholder="Key…"
+                      maxlength="5"
+                      value="${(s.key||'').replace(/"/g,'&quot;')}"
+                      onclick="event.stopPropagation()"
+                      onchange="saveSongKey('${week.display.replace(/'/g,"\\'")}',${i},this.value)">
+                  </div>
+                  ${s.artist ? `<span class="song-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>${s.artist}</span>` : ''}
+                  ${s.songwriter ? `<span class="song-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>${s.songwriter}</span>` : ''}
+                  ${s.link ? `<a class="song-link" href="${s.link}" target="_blank" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>${s.link.replace(/^https?:\/\/(www\.)?/,'').slice(0,40)}${s.link.length>50?'…':''}</a>` : ''}
+                </div>
+              </div>`).join('')
+          : `<span class="song-empty">No songs listed for this week</span>`
+        }
+      </div>
+    </div>`;
+
+  return autoHtml
+    + `<div class="manual-grid">${manualHtml}</div>`
+    + songHtml;
+}
+
+function saveManual(wi, role, value){
+  value = value.trim();
+  const prev = (schedule[wi].assigned[role]||[])[0] || '';
+  setSyncStatus('syncing','Saving…');
+  apiCall({action:'setManual', date:schedule[wi].display, role, value})
+    .then(()=>{
+      schedule[wi].assigned[role] = value ? [value] : [];
+      setSyncStatus('synced','Saved');
+    })
+    .catch(err=>{
+      setSyncStatus('error','Save failed');
+      handleApiError(err);
+      render();   // revert the input to the stored value
+    });
+}
+
+function saveSongKey(dateDisplay, songIdx, value){
+  if(!songs[dateDisplay] || !songs[dateDisplay][songIdx]) return;
+  songs[dateDisplay][songIdx].key = value.trim();
+  // Update the visible badge immediately without full re-render
+  const badge = event.target.closest('.song-detail').querySelector('.song-key-view');
+  if(badge){
+    badge.innerHTML = value.trim()
+      ? `<span class="song-key">${value.trim()}</span>`
+      : '<span class="song-key-empty">no key</span>';
+  }
+  // Push to sheet
+  apiCall({action:'saveSongKey', date: dateDisplay, index: songIdx, key: value.trim()}).catch(handleApiError);
+}
+
+function populateFilter(){
+  const sel = document.getElementById('personFilter');
+  const prev = sel.value;
+  while(sel.options.length>1) sel.remove(1);
+  Object.keys(volunteers).sort().forEach(n=>{
+    const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+  });
+  if(prev) sel.value=prev;
+}
+
+function filterPerson(){ render(); }
+function toggleCard(wi){ document.querySelector(`.week-card[data-wi="${wi}"]`).classList.toggle('expanded'); }
+function expandAll(){ document.querySelectorAll('.week-card').forEach(c=>c.classList.add('expanded')); }
+function collapseAll(){ document.querySelectorAll('.week-card').forEach(c=>c.classList.remove('expanded')); }
+function toggleWarnings(){
+  showWarningsOnly=!showWarningsOnly;
+  document.getElementById('warnToggle').classList.toggle('active',showWarningsOnly);
+  render();
+}
+
+// ── Swap ──────────────────────────────────────────────────────────────────────
+let swapCtx=null;
+async function openSwap(e,wi,role,cur){
+  e.stopPropagation();
+  swapCtx={wi,role,cur};
+  const week=schedule[wi];
+  document.getElementById('swapInfo').innerHTML=`<strong>${esc(week.display)}</strong><br>Swapping <strong>${esc(cur)}</strong> off <strong>${esc(role)}</strong>`;
+  const list=document.getElementById('swapOptions');
+  list.innerHTML='<p style="color:var(--muted);font-size:13px">Checking availability…</p>';
+  document.getElementById('swapModal').classList.add('open');
+  try{
+    // Availability is checked on the server so leave dates are never published
+    const res = await apiCall({action:'options', date:week.display, role, cur});
+    list.innerHTML='';
+    if(!res.options.length){ list.innerHTML='<p style="color:var(--muted);font-size:13px">No other volunteers for this role.</p>'; return; }
+    res.options.sort((a,b)=> (a.busy-b.busy) || (a.adjacent-b.adjacent) || a.name.localeCompare(b.name));
+    res.options.forEach(o=>{
+      const row=document.createElement('div');
+      row.className='swap-option'+(o.busy?' unavail':'');
+      const notes=[o.serving?'already serving':'', o.adjacent?'serves adjacent week':''].filter(Boolean).join(', ');
+      row.innerHTML=`<span>${esc(o.name)}${notes?` <span style="font-size:10px;color:var(--muted)">(${notes})</span>`:''}</span>
+        <span class="avail-badge ${o.busy?'av-no':'av-ok'}">${o.busy?'Unavailable':'Available'}</span>`;
+      if(!o.busy) row.onclick=()=>confirmSwap(o.name);
+      list.appendChild(row);
+    });
+  } catch(err){
+    closeSwap(); handleApiError(err);
+  }
+}
+
+async function confirmSwap(newPerson){
+  const {wi,role,cur}=swapCtx;
+  const week=schedule[wi];
+  setSyncStatus('syncing','Saving…');
+  try{
+    const res = await apiCall({action:'swap', date:week.display, role, from:cur, to:newPerson});
+    if(res.week) schedule[wi]=res.week;
+    if(res.entry){ swapLog.unshift(res.entry); renderSwapLog(); }
+    setSyncStatus('synced','Saved');
+    closeSwap(); render();
+    setTimeout(()=>{ const card=document.querySelector(`.week-card[data-wi="${wi}"]`); if(card) card.classList.add('expanded'); },50);
+  } catch(err){
+    setSyncStatus('error','Swap failed');
+    closeSwap(); handleApiError(err);
+  }
+}
+
+function closeSwap(){ document.getElementById('swapModal').classList.remove('open'); swapCtx=null; }
+
+function renderSwapLog(){
+  const el=document.getElementById('swapLogEntries');
+  if(!swapLog.length){ el.innerHTML='<p class="log-empty">No swaps recorded yet.</p>'; return; }
+  el.innerHTML=swapLog.map(s=>`<div class="log-entry">
+    <span class="log-date">${s.date}</span>
+    <span>${s.role}: <strong style="color:var(--text)">${s.from}</strong> → <strong style="color:var(--accent)">${s.to}</strong>
+    <span style="color:var(--border);margin-left:4px">${s.at}</span></span>
+  </div>`).join('');
+}
+
+document.getElementById('swapModal').addEventListener('click',e=>{ if(e.target.id==='swapModal') closeSwap(); });
+
+// ── PIN & Edit mode ───────────────────────────────────────────────────────────
+// The PIN is NEVER stored in this page. It is typed in, sent to the server, and
+// verified there (rate-limited). It is kept in memory only while edit mode is on.
+const PIN_LEN = 6;
+let pinBuffer  = '';
+let isEditMode = false;
+let pinBusy    = false;
+
+function pinPress(digit){
+  if(pinBusy || pinBuffer.length >= PIN_LEN) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if(pinBuffer.length === PIN_LEN) setTimeout(checkPin, 120);
+}
+
+function pinDelete(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pinError').textContent='';
+}
+
+function pinClear(){
+  pinBuffer='';
+  updatePinDots();
+  document.getElementById('pinError').textContent='';
+}
+
+function updatePinDots(state=''){
+  for(let i=0;i<PIN_LEN;i++){
+    const el=document.getElementById('pd'+i);
+    el.className='pin-dot'+(i<pinBuffer.length?' filled':'')+(state==='error'?' error':'');
+  }
+}
+
+async function checkPin(){
+  if(pinBusy || !pinBuffer) return;
+  pinBusy = true;
+  const errEl = document.getElementById('pinError');
+  errEl.textContent = 'Checking…';
+  adminPin = pinBuffer;
+  try{
+    await apiCall({action:'verifyPin'});
+    errEl.textContent='';
+    closePin(true);
+  } catch(e){
+    adminPin = null;
+    updatePinDots('error');
+    errEl.textContent = e.message;
+    setTimeout(()=>{ pinBuffer=''; updatePinDots(); }, 700);
+  } finally {
+    pinBusy = false;
+  }
+}
+
+function closePin(withEdit){
+  document.getElementById('pinOverlay').classList.add('hidden');
+  pinBuffer=''; updatePinDots();
+  if(withEdit) enterEditMode();
+}
+
+function enterEditMode(){
+  isEditMode=true;
+  document.body.classList.add('edit-mode');
+  document.getElementById('editFab').classList.add('active');
+  document.getElementById('editFabLabel').textContent='Lock';
+  const fab=document.getElementById('editFab');
+  fab.querySelector('svg').innerHTML='<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><line x1="12" y1="15" x2="12" y2="17"/>';
+}
+
+function exitEditMode(){
+  isEditMode=false;
+  adminPin=null;
+  document.body.classList.remove('edit-mode');
+  const fab=document.getElementById('editFab');
+  fab.classList.remove('active');
+  document.getElementById('editFabLabel').textContent='Unlock';
+  fab.querySelector('svg').innerHTML='<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+}
+
+function toggleEditMode(){
+  if(isEditMode){
+    exitEditMode();
+  } else {
+    pinBuffer='';
+    updatePinDots();
+    const errEl = document.getElementById('pinError');
+    errEl.textContent = API_URL ? '' : 'Editing is not enabled on this page.';
+    document.getElementById('pinOverlay').classList.remove('hidden');
+  }
+}
+
+// Keyboard support for PIN
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('pinOverlay').classList.contains('hidden')) return;
+  if(e.key>='0'&&e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinDelete();
+  else if(e.key==='Enter') checkPin();
+  else if(e.key==='Escape') closePin(false);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+populateFilter();
+render();
+loadAll();
+
+</script>
+</body>
+</html>
